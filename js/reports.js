@@ -409,7 +409,7 @@ const Reports = (() => {
       ['D', 'Unit Price', false],
       ['E', 'AM - Beginning Inventory', true],
       ['F', 'Total', true],
-      ['G', 'Units Sold', true],
+      ['G', 'Units Sold', false],
       ['H', 'Total', false],
       ['I', 'PM - Ending Inventory', true],
     ];
@@ -440,9 +440,23 @@ const Reports = (() => {
       const totalBeginCell = dataCell(ws.getCell('F' + row));
       totalBeginCell.value = { formula: 'D' + row + '*E' + row, result: Number(it.price) * beginning };
       totalBeginCell.numFmt = PESO_FMT;
-      dataCell(ws.getCell('G' + row)).value = ''; // Leave blank for manual input
-      const totalSoldCell = dataCell(ws.getCell('H' + row));
-      totalSoldCell.value = { formula: 'D' + row + '*G' + row, result: 1 }; // G is filled in by hand
+      const reportSales = getFilteredSales();
+
+const unitsSold = reportSales.reduce((sum, sale) => {
+  return sum + (sale.items || [])
+    .filter(line => (line.itemId || line.id) === it.id)
+    .reduce((n, line) => n + (Number(line.qty) || 0), 0);
+}, 0);
+
+dataCell(ws.getCell('G' + row)).value = unitsSold;
+
+const totalSoldCell = dataCell(ws.getCell('H' + row));
+totalSoldCell.value = {
+  formula: 'D' + row + '*G' + row,
+  result: Number(it.price) * unitsSold
+};
+totalSoldCell.numFmt = PESO_FMT;
+
       totalSoldCell.numFmt = PESO_FMT;
       dataCell(ws.getCell('I' + row)).value = ending;
       const bLines = estimateWrapLines(it.farm || '', 38);
