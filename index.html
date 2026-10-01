@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TinDARhan</title>
+<meta name="description" content="TinDARhan point of sale for DAR Batangas.">
+<meta name="theme-color" content="#F4F5F3">
+
+<script>
+  // Apply the saved theme before first paint to avoid a flash of the wrong one.
+  (function () {
+    try {
+      document.documentElement.setAttribute('data-theme', localStorage.getItem('tindarhan_theme') === 'dark' ? 'dark' : 'light');
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="icon" type="image/png" href="assets/dar-logo.png">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" defer></script>
+</head>
+<body>
+
+<!-- ============================ Login ============================ -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-backdrop" aria-hidden="true">
+    <img src="assets/tarpaulin-bg.jpg" alt="" class="login-backdrop-img">
+  </div>
+
+  <main class="login-card">
+    <div class="login-org">
+      <img src="assets/dar-logo.png" alt="" class="login-org-seal">
+      <span>DAR Batangas</span>
+    </div>
+    <h1 class="login-brand">
+      <img src="assets/tindarhan-logo.png" alt="TinDARhan: Gawang ARBO, Produktong Batangue&ntilde;o" class="login-brand-logo">
+    </h1>
+    <p class="login-subtitle">Log in to open the shop.</p>
+
+    <form id="loginForm" class="login-form" novalidate>
+      <div class="field">
+        <label class="field-label" for="loginUsername">Username</label>
+        <input type="text" id="loginUsername" class="field-input" autocomplete="username" autocapitalize="characters" spellcheck="false" required>
+      </div>
+      <div class="field">
+        <label class="field-label" for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" class="field-input" autocomplete="current-password" required>
+      </div>
+      <p id="loginError" class="form-error hidden" role="alert"></p>
+      <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-lg btn-block">Log in</button>
+    </form>
+  </main>
+</div>
+
+<!-- ============================ App ============================ -->
+<div id="appShell" class="hidden">
+  <div class="shell">
+
+    <aside id="sidebar" class="sidebar" aria-label="Sidebar">
+      <div class="sidebar-brand">
+        <img src="assets/dar-logo.png" alt="" class="sidebar-seal">
+        <img src="assets/tindarhan-logo.png" alt="TinDARhan" class="sidebar-logo">
+        <button type="button" id="sidebarCloseBtn" class="icon-btn sidebar-close" aria-label="Close menu">
+          <span class="icon" data-icon="x" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <nav class="nav" aria-label="Main">
+        <button type="button" class="tab-btn nav-item active" data-tab="pos" aria-current="page">
+          <span class="icon" data-icon="cart" aria-hidden="true"></span><span>Shop</span>
+        </button>
+        <button type="button" class="tab-btn nav-item" data-tab="inventory" aria-current="false">
+          <span class="icon" data-icon="box" aria-hidden="true"></span><span>Inventory</span>
+        </button>
+        <button type="button" class="tab-btn nav-item" data-tab="reports" aria-current="false">
+          <span class="icon" data-icon="barChart" aria-hidden="true"></span><span>Sales reports</span>
+        </button>
+      </nav>
+
+      <section class="sidebar-section" aria-labelledby="glanceHeading">
+        <p id="glanceHeading" class="sidebar-heading">At a glance</p>
+        <button type="button" id="glanceRestockBtn" class="glance-row">
+          <span class="glance-label">Needs restock</span>
+          <span class="glance-value" id="snapshotLowStock">&mdash;</span>
+        </button>
+        <button type="button" id="glancePendingBtn" class="glance-row">
+          <span class="glance-label">Unpaid Pay Later</span>
+          <span class="glance-value" id="snapshotPending">&mdash;</span>
+        </button>
+      </section>
+
+      <div class="sidebar-footer">
+        <div class="field cashier-field">
+          <label class="field-label" for="cashierName">Cashier on duty</label>
+          <input type="text" id="cashierName" class="field-input field-input-sm" placeholder="Your name" autocomplete="name">
+        </div>
+        <button type="button" id="gcashQrBtn" class="sidebar-link">
+          <span class="icon" data-icon="qrCode" aria-hidden="true"></span><span>GCash QR code</span>
+        </button>
+        <button type="button" id="themeToggleBtn" class="sidebar-link">
+          <span class="icon" id="themeToggleIcon" aria-hidden="true"></span><span id="themeToggleLabel">Dark mode</span>
+        </button>
+        <button type="button" id="changePasswordBtn" class="sidebar-link">
+          <span class="icon" data-icon="lock" aria-hidden="true"></span><span>Change password</span>
+        </button>
+        <button type="button" id="logoutBtn" class="sidebar-link">
+          <span class="icon" data-icon="logOut" aria-hidden="true"></span><span>Log out</span>
+        </button>
+      </div>
+    </aside>
+    <div id="sidebarScrim" class="sidebar-scrim"></div>
+
+    <div class="content">
+      <header class="topbar">
+        <button type="button" id="sidebarToggleBtn" class="icon-btn sidebar-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
+          <span class="icon" data-icon="menu" aria-hidden="true"></span>
+        </button>
+        <h1 id="topbarTitle" class="topbar-title" tabindex="-1">Shop</h1>
+        <div class="search topbar-search">
+          <span class="icon search-icon" data-icon="search" aria-hidden="true"></span>
+          <input type="search" id="posSearch" class="field-input search-input" placeholder="Search products" aria-label="Search products">
+        </div>
+        <span id="liveClock" class="topbar-clock"></span>
+        <div class="notif-center">
+          <button type="button" id="notifBellBtn" class="icon-btn notif-bell" aria-label="Notifications" aria-expanded="false" aria-controls="notifPanel" aria-haspopup="dialog">
+            <span class="icon" data-icon="bell" aria-hidden="true"></span>
+            <span id="notifBellCount" class="notif-bell-count hidden" aria-hidden="true"></span>
+          </button>
+          <div id="notifPanel" class="notif-panel hidden" role="dialog" aria-labelledby="notifPanelTitle">
+            <div class="notif-panel-header">
+              <h2 id="notifPanelTitle" class="notif-panel-title" tabindex="-1">Notifications</h2>
+              <button type="button" id="notifMarkReadBtn" class="link-btn">Mark all as read</button>
+            </div>
+            <div id="notifPanelBody" class="notif-panel-body"></div>
+          </div>
+        </div>
+      </header>
+
+      <main class="main" id="main">
+
+        <!-- ---------- Shop ---------- -->
+        <section id="tab-pos" class="tab-panel active" aria-labelledby="topbarTitle">
+          <div class="pos-layout">
+            <div class="card pos-products">
+              <div class="card-header">
+                <h2 class="card-title">Products</h2>
+                <span id="itemCountChip" class="card-meta"></span>
+              </div>
+              <div id="itemGrid" class="product-grid"></div>
+            </div>
+
+            <div class="card pos-cart">
+              <div class="card-header">
+                <h2 class="card-title" id="cartTitle" tabindex="-1">Current sale</h2>
+                <span id="cartCount" class="cart-count num"></span>
+              </div>
+              <div id="cartList" class="cart-list"></div>
+
+              <div class="cart-footer">
+                <div class="cart-total">
+                  <span>Total</span>
+                  <span id="cartTotal" class="num">P0.00</span>
+                </div>
+
+                <div class="field">
+                  <span class="field-label" id="paymentMethodLabel">Payment method</span>
+                  <select id="paymentMethod" class="hidden" aria-hidden="true" tabindex="-1">
+                    <option value="Cash">Cash</option>
+                    <option value="GCash">GCash</option>
+                    <option value="Pay Later">Pay Later (Utang)</option>
+                  </select>
+                  <div class="segmented" role="group" aria-labelledby="paymentMethodLabel">
+                    <button type="button" class="payment-method-btn segmented-btn active" data-payment-value="Cash">Cash</button>
+                    <button type="button" class="payment-method-btn segmented-btn" data-payment-value="GCash">GCash</button>
+                    <button type="button" class="payment-method-btn segmented-btn" data-payment-value="Pay Later">Pay Later</button>
+                  </div>
+                </div>
+
+                <div id="gcashQrBox" class="gcash-qr-box hidden">
+                  <img id="gcashQrImage" alt="GCash QR code" class="gcash-qr-image">
+                  <p class="gcash-qr-caption">Customer scans this to pay by GCash.</p>
+                </div>
+
+                <div id="payLaterBox" class="field hidden">
+                  <label class="field-label" for="payLaterCustomerName">Customer name</label>
+                  <input type="text" id="payLaterCustomerName" class="field-input" placeholder="Who will pay later?" autocomplete="off">
+                </div>
+
+                <div id="amountPaidRow" class="field">
+                  <label class="field-label" for="amountPaid">Amount received</label>
+                  <div class="input-affix">
+                    <span class="input-affix-text" aria-hidden="true">P</span>
+                    <input type="number" id="amountPaid" class="field-input" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+                  </div>
+                  <div id="quickCash" class="quick-cash" role="group" aria-label="Quick amounts">
+                    <button type="button" class="chip-btn" data-amount="exact">Exact</button>
+                    <button type="button" class="chip-btn" data-amount="100">P100</button>
+                    <button type="button" class="chip-btn" data-amount="500">P500</button>
+                    <button type="button" class="chip-btn" data-amount="1000">P1,000</button>
+                  </div>
+                </div>
+
+                <div id="changeRow" class="cart-row">
+                  <span>Change</span>
+                  <span id="cartChange" class="num">P0.00</span>
+                </div>
+
+                <div class="cart-actions">
+                  <button type="button" id="clearCartBtn" class="btn btn-secondary">Clear</button>
+                  <button type="button" id="checkoutBtn" class="btn btn-primary btn-lg" disabled>Charge</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- Inventory ---------- -->
+        <section id="tab-inventory" class="tab-panel" aria-labelledby="topbarTitle">
+          <div class="card">
+            <div class="toolbar">
+              <div class="search toolbar-search">
+                <span class="icon search-icon" data-icon="search" aria-hidden="true"></span>
+                <input type="search" id="inventorySearch" class="field-input search-input" placeholder="Search items" aria-label="Search inventory">
+              </div>
+              <label class="sr-only" for="inventoryStatusFilter">Stock status</label>
+              <select id="inventoryStatusFilter" class="field-input toolbar-select">
+                <option value="all">All items</option>
+                <option value="restock">Needs restock</option>
+                <option value="out">Out of stock</option>
+              </select>
+              <div class="date-range" role="group" aria-label="Date added">
+                <label class="sr-only" for="inventoryFilterFrom">Added from</label>
+                <input type="date" id="inventoryFilterFrom" class="field-input">
+                <span class="date-range-sep" aria-hidden="true">to</span>
+                <label class="sr-only" for="inventoryFilterTo">Added to</label>
+                <input type="date" id="inventoryFilterTo" class="field-input">
+                <button type="button" id="inventoryApplyFilterBtn" class="btn btn-secondary">Apply</button>
+                <button type="button" id="inventoryResetFilterBtn" class="btn btn-ghost">Reset</button>
+              </div>
+              <button type="button" id="addItemBtn" class="btn btn-primary toolbar-end">
+                <span class="icon" data-icon="plus" aria-hidden="true"></span>Add item
+              </button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table inventory-table">
+                <thead>
+                  <tr>
+                    <th scope="col"><span class="sr-only">Photo</span></th>
+                    <th scope="col">Item</th>
+                    <th scope="col" class="num">Price</th>
+                    <th scope="col" class="num">Stock</th>
+                    <th scope="col">Added</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="actions-col"><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------- Sales reports ---------- -->
+        <section id="tab-reports" class="tab-panel" aria-labelledby="topbarTitle">
+          <div class="card">
+            <div class="toolbar">
+              <div class="segmented segmented-compact" role="group" aria-label="Quick date range">
+                <button type="button" class="segmented-btn report-preset" data-preset="today">Today</button>
+                <button type="button" class="segmented-btn report-preset" data-preset="7d">7 days</button>
+                <button type="button" class="segmented-btn report-preset" data-preset="30d">30 days</button>
+                <button type="button" class="segmented-btn report-preset active" data-preset="all">All time</button>
+              </div>
+              <div class="date-range" role="group" aria-label="Custom date range">
+                <label class="sr-only" for="reportsFilterFrom">From</label>
+                <input type="date" id="reportsFilterFrom" class="field-input">
+                <span class="date-range-sep" aria-hidden="true">to</span>
+                <label class="sr-only" for="reportsFilterTo">To</label>
+                <input type="date" id="reportsFilterTo" class="field-input">
+                <button type="button" id="reportsApplyFilterBtn" class="btn btn-secondary">Apply</button>
+                <button type="button" id="reportsResetFilterBtn" class="btn btn-ghost">Reset</button>
+              </div>
+              <button type="button" id="exportCsvBtn" class="btn btn-primary toolbar-end">
+                <span class="icon" data-icon="download" aria-hidden="true"></span>Export to Excel
+              </button>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-label">Total sales</span>
+              <span class="stat-value num" id="statTotalSales">P0.00</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Transactions</span>
+              <span class="stat-value num" id="statTransactions">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Items sold</span>
+              <span class="stat-value num" id="statItemsSold">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Average sale</span>
+              <span class="stat-value num" id="statAvgSale">P0.00</span>
+            </div>
+            <div class="stat stat-attention">
+              <span class="stat-label">Unpaid Pay Later</span>
+              <span class="stat-value num" id="statPendingPayLater">P0.00</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Top selling products</h2>
+              <span class="card-meta">By quantity sold</span>
+            </div>
+            <div id="topProductsChart" class="bar-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Sales transactions</h2>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table sales-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Cashier</th>
+                    <th scope="col">Payment</th>
+                    <th scope="col" class="num">Total</th>
+                    <th scope="col" class="num">Items</th>
+                    <th scope="col" class="actions-col"><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="reportsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card card-danger">
+            <div class="danger-row">
+              <div>
+                <h2 class="card-title">Delete all sales records</h2>
+                <p class="card-desc">Removes every sale and restarts receipt numbers at SALE00001. Inventory is not affected. This can&rsquo;t be undone.</p>
+              </div>
+              <button type="button" id="deleteAllReportsBtn" class="btn btn-danger-outline">Delete all sales</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Phones: the sale is below the products, so this bar shows the
+           running total and jumps to it. Hidden while the sale is on screen. -->
+      <button type="button" id="cartBar" class="cart-bar" aria-label="View current sale">
+        <span id="cartBarCount" class="cart-bar-count num">0</span>
+        <span class="cart-bar-label">View sale</span>
+        <span id="cartBarTotal" class="cart-bar-total num">P0.00</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ Dialogs ============================ -->
+
+<div id="itemModal" class="modal-backdrop hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle">
+    <div class="modal-header">
+      <h2 id="itemModalTitle" class="modal-title">Add item</h2>
+      <button type="button" id="itemModalClose" class="icon-btn" aria-label="Close">
+        <span class="icon" data-icon="x" aria-hidden="true"></span>
+      </button>
+    </div>
+    <form id="itemForm" class="modal-form" novalidate>
+      <div class="modal-body">
+        <div class="photo-row">
+          <div class="photo-frame">
+            <img id="itemPhotoPreview" class="hidden" alt="Item photo preview">
+            <span id="itemPhotoPlaceholder" class="photo-placeholder">
+              <span class="icon icon-lg" data-icon="camera" aria-hidden="true"></span>
+            </span>
+          </div>
+          <div class="photo-actions">
+            <input type="file" id="itemPhotoInput" accept="image/*" class="sr-only file-input">
+            <label for="itemPhotoInput" class="btn btn-secondary">
+              <span class="icon" data-icon="camera" aria-hidden="true"></span>Upload photo
+            </label>
+            <button type="button" id="itemPhotoClearBtn" class="btn btn-ghost hidden">Remove photo</button>
+            <p class="field-hint">Optional. JPG or PNG, resized automatically.</p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field form-span-2">
+            <label class="field-label" for="itemName">Item name</label>
+            <input type="text" id="itemName" class="field-input" required autocomplete="off">
+          </div>
+          <div class="field form-span-2">
+            <label class="field-label" for="itemFarm">Farm / maker <span class="field-optional">optional</span></label>
+            <input type="text" id="itemFarm" class="field-input" placeholder="e.g. Lipa ARBO Producers" autocomplete="off">
+          </div>
+          <div class="field">
+            <label class="field-label" for="itemPrice">Price</label>
+            <div class="input-affix">
+              <span class="input-affix-text" aria-hidden="true">P</span>
+              <input type="number" id="itemPrice" class="field-input" min="0" step="0.01" inputmode="decimal" required>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="itemStock">Stock</label>
+            <input type="number" id="itemStock" class="field-input" min="0" step="1" inputmode="numeric" required>
+          </div>
+          <div class="field form-span-2">
+            <label class="field-label" for="itemLowStock">Low-stock alert at</label>
+            <input type="number" id="itemLowStock" class="field-input field-input-narrow" min="0" step="1" inputmode="numeric" value="5" aria-describedby="itemLowStockHint">
+            <p class="field-hint" id="itemLowStockHint">You&rsquo;ll be alerted when stock reaches this number.</p>
+          </div>
+        </div>
+        <p id="itemFormError" class="form-error hidden" role="alert"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="itemFormCancelBtn" class="btn btn-secondary">Cancel</button>
+        <button type="submit" id="itemFormSaveBtn" class="btn btn-primary">Save item</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="receiptModal" class="modal-backdrop hidden">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle">
+    <div class="modal-header">
+      <h2 id="receiptModalTitle" class="modal-title">Receipt</h2>
+      <button type="button" id="receiptModalClose" class="icon-btn" aria-label="Close">
+        <span class="icon" data-icon="x" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div id="receiptBody" class="modal-body receipt"></div>
+    <div class="modal-footer">
+      <button type="button" id="receiptCloseBtn" class="btn btn-secondary">Close</button>
+      <button type="button" id="receiptPrintBtn" class="btn btn-primary">
+        <span class="icon" data-icon="printer" aria-hidden="true"></span>Print
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal-backdrop hidden">
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalMessage">
+    <div class="modal-body">
+      <h2 id="confirmModalTitle" class="modal-title">Please confirm</h2>
+      <p id="confirmModalMessage" class="modal-text"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="confirmModalCancel" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="confirmModalOk" class="btn btn-primary">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="markPaidModal" class="modal-backdrop hidden">
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="markPaidModalTitle" aria-describedby="markPaidModalMessage">
+    <div class="modal-body">
+      <h2 id="markPaidModalTitle" class="modal-title">Mark as paid</h2>
+      <p id="markPaidModalMessage" class="modal-text"></p>
+      <div class="choice-row">
+        <button type="button" id="markPaidCashBtn" class="choice-btn">Cash</button>
+        <button type="button" id="markPaidGcashBtn" class="choice-btn">GCash</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="markPaidCancelBtn" class="btn btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteAllReportsModal" class="modal-backdrop hidden">
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="deleteAllReportsTitle">
+    <div class="modal-header">
+      <h2 id="deleteAllReportsTitle" class="modal-title">Delete all sales records</h2>
+      <button type="button" id="deleteAllReportsModalClose" class="icon-btn" aria-label="Close">
+        <span class="icon" data-icon="x" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-text">This permanently deletes <strong>every sale</strong> and restarts receipt numbers. Inventory stays as it is.</p>
+      <div class="field">
+        <label class="field-label" for="deleteAllConfirmInput">Type <strong>DELETE</strong> to confirm</label>
+        <input type="text" id="deleteAllConfirmInput" class="field-input" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="cancelDeleteAllBtn" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="confirmDeleteAllBtn" class="btn btn-danger" disabled>Delete all sales</button>
+    </div>
+  </div>
+</div>
+
+<div id="passwordModal" class="modal-backdrop hidden">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+    <div class="modal-header">
+      <h2 id="passwordModalTitle" class="modal-title">Change password</h2>
+      <button type="button" id="passwordModalClose" class="icon-btn" aria-label="Close">
+        <span class="icon" data-icon="x" aria-hidden="true"></span>
+      </button>
+    </div>
+    <form id="passwordForm" class="modal-form" novalidate>
+      <div class="modal-body">
+        <p class="modal-text">Other devices using this login will be logged out.</p>
+        <div class="field">
+          <label class="field-label" for="currentPassword">Current password</label>
+          <input type="password" id="currentPassword" class="field-input" autocomplete="current-password" required>
+        </div>
+        <div class="field">
+          <label class="field-label" for="newPassword">New password</label>
+          <input type="password" id="newPassword" class="field-input" autocomplete="new-password" minlength="8" required aria-describedby="newPasswordHint">
+          <p class="field-hint" id="newPasswordHint">At least 8 characters.</p>
+        </div>
+        <div class="field">
+          <label class="field-label" for="confirmPassword">Confirm new password</label>
+          <input type="password" id="confirmPassword" class="field-input" autocomplete="new-password" required>
+        </div>
+        <p id="passwordFormError" class="form-error hidden" role="alert"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="passwordCancelBtn" class="btn btn-secondary">Cancel</button>
+        <button type="submit" id="passwordSaveBtn" class="btn btn-primary">Change password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="gcashQrModal" class="modal-backdrop hidden">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="gcashQrModalTitle">
+    <div class="modal-header">
+      <h2 id="gcashQrModalTitle" class="modal-title">GCash QR code</h2>
+      <button type="button" id="gcashQrModalClose" class="icon-btn" aria-label="Close">
+        <span class="icon" data-icon="x" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-text">Shown to customers at checkout when they choose GCash.</p>
+      <div class="photo-row">
+        <div class="photo-frame photo-frame-lg">
+          <img id="gcashManagePreview" class="hidden" alt="GCash QR preview">
+          <span id="gcashManageEmpty" class="photo-placeholder">
+            <span class="icon icon-lg" data-icon="qrCode" aria-hidden="true"></span>
+          </span>
+        </div>
+        <div class="photo-actions">
+          <input type="file" id="gcashFileInput" accept="image/*" class="sr-only file-input">
+          <label for="gcashFileInput" class="btn btn-secondary">
+            <span class="icon" data-icon="upload" aria-hidden="true"></span>Upload QR image
+          </label>
+          <button type="button" id="gcashRemoveBtn" class="btn btn-ghost hidden">Remove</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="gcashSaveBtn" class="btn btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/icons.js"></script>
+<script src="js/motion.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/notify.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/gcash.js"></script>
+<script src="js/pos.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
