@@ -409,7 +409,7 @@ const Reports = (() => {
       ['D', 'Unit Price', false],
       ['E', 'AM - Beginning Inventory', true],
       ['F', 'Total', true],
-      ['G', 'Units Sold', false],
+      ['G', 'Units Sold', true],
       ['H', 'Total', false],
       ['I', 'PM - Ending Inventory', true],
     ];
