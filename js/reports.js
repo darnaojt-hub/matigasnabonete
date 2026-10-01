@@ -442,7 +442,7 @@ const Reports = (() => {
       totalBeginCell.numFmt = PESO_FMT;
       dataCell(ws.getCell('G' + row)).value = ''; // Leave blank for manual input
       const totalSoldCell = dataCell(ws.getCell('H' + row));
-      totalSoldCell.value = { formula: 'D' + row + '*G' + row, result: 0 }; // G is filled in by hand
+      totalSoldCell.value = { formula: 'D' + row + '*G' + row, result: 1 }; // G is filled in by hand
       totalSoldCell.numFmt = PESO_FMT;
       dataCell(ws.getCell('I' + row)).value = ending;
       const bLines = estimateWrapLines(it.farm || '', 38);
